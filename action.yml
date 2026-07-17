@@ -54,6 +54,9 @@ runs:
       shell: bash
       env:
         PATH_GLOB: ${{ inputs.path-glob }}
+        # validate-json needs no database; "dummy" skips multiflexi-cli's DB-backed
+        # user bootstrap so the action doesn't need multiflexi-sqlite/-mysql/-pgsql installed.
+        DB_CONNECTION: dummy
       run: |
         set -euo pipefail
         shopt -s nullglob
