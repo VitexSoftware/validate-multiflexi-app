@@ -54,6 +54,13 @@ runs:
         # dbconfig-common, with no external DB server needed.
         sudo apt-get install -y multiflexi-cli multiflexi-sqlite
 
+        # dbconfig-common writes DB_* settings to /etc/multiflexi/database.env, but
+        # multiflexi-cli only auto-loads /etc/multiflexi/multiflexi.env — merge them
+        # so the DB connection it bootstraps is actually the one dbconfig-common created.
+        if [ -f /etc/multiflexi/database.env ]; then
+          sudo tee -a /etc/multiflexi/multiflexi.env < /etc/multiflexi/database.env > /dev/null
+        fi
+
     - name: Validate against MultiFlexi schema
       shell: bash
       env:
