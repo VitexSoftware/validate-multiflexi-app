@@ -60,6 +60,15 @@ runs:
         if [ -f /etc/multiflexi/database.env ]; then
           sudo tee -a /etc/multiflexi/multiflexi.env < /etc/multiflexi/database.env > /dev/null
         fi
+        echo "::group::DEBUG multiflexi.env"
+        sudo cat /etc/multiflexi/multiflexi.env
+        echo "::endgroup::"
+        echo "::group::DEBUG database.env"
+        sudo cat /etc/multiflexi/database.env 2>&1 || true
+        echo "::endgroup::"
+        echo "::group::DEBUG sqlite files"
+        sudo find /var/lib/dbconfig-common -type f
+        echo "::endgroup::"
 
     - name: Validate against MultiFlexi schema
       shell: bash
