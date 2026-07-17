@@ -39,6 +39,7 @@ runs:
       shell: bash
       env:
         APT_REPO_SUITE: ${{ inputs.apt-repo-suite }}
+        DEBIAN_FRONTEND: noninteractive
       run: |
         set -euo pipefail
         suite="$APT_REPO_SUITE"
@@ -48,15 +49,15 @@ runs:
         sudo curl -fsSL https://repo.multiflexi.eu/KEY.gpg -o /usr/share/keyrings/multiflexi-archive-keyring.gpg
         echo "deb [signed-by=/usr/share/keyrings/multiflexi-archive-keyring.gpg] https://repo.multiflexi.eu/ ${suite} main" | sudo tee /etc/apt/sources.list.d/multiflexi.list
         sudo apt-get update
-        sudo apt-get install -y multiflexi-cli
+        # multiflexi-cli's User bootstrap needs a working DB even for stateless commands
+        # like validate-json; multiflexi-sqlite provisions one non-interactively via
+        # dbconfig-common, with no external DB server needed.
+        sudo apt-get install -y multiflexi-cli multiflexi-sqlite
 
     - name: Validate against MultiFlexi schema
       shell: bash
       env:
         PATH_GLOB: ${{ inputs.path-glob }}
-        # validate-json needs no database; "dummy" skips multiflexi-cli's DB-backed
-        # user bootstrap so the action doesn't need multiflexi-sqlite/-mysql/-pgsql installed.
-        DB_CONNECTION: dummy
       run: |
         set -euo pipefail
         shopt -s nullglob
