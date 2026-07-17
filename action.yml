@@ -60,18 +60,6 @@ runs:
         if [ -f /etc/multiflexi/database.env ]; then
           sudo tee -a /etc/multiflexi/multiflexi.env < /etc/multiflexi/database.env > /dev/null
         fi
-        echo "::group::DEBUG multiflexi.env"
-        sudo cat /etc/multiflexi/multiflexi.env
-        echo "::endgroup::"
-        echo "::group::DEBUG database.env"
-        sudo cat /etc/multiflexi/database.env 2>&1 || true
-        echo "::endgroup::"
-        echo "::group::DEBUG sqlite files"
-        sudo find /var/lib/dbconfig-common -ls
-        echo "whoami: $(whoami), id: $(id)"
-        sudo -u "$(whoami)" test -r /var/lib/dbconfig-common/sqlite3/multiflexi/multiflexi && echo "readable by current user" || echo "NOT readable by current user"
-        sudo -u "$(whoami)" test -w /var/lib/dbconfig-common/sqlite3/multiflexi/multiflexi && echo "writable by current user" || echo "NOT writable by current user"
-        echo "::endgroup::"
 
     - name: Validate against MultiFlexi schema
       shell: bash
@@ -83,7 +71,10 @@ runs:
         status=0
         for file in $PATH_GLOB; do
           echo "Validating schema: $file"
-          if ! multiflexi-cli application:validate-json --file "$file"; then
+          # the sqlite DB dbconfig-common created is only group-readable by the
+          # "multiflexi" system user/group, which the runner user isn't part of;
+          # root can bypass that, so run multiflexi-cli via sudo.
+          if ! sudo multiflexi-cli application:validate-json --file "$file"; then
             status=1
           fi
         done
