@@ -67,7 +67,10 @@ runs:
         sudo cat /etc/multiflexi/database.env 2>&1 || true
         echo "::endgroup::"
         echo "::group::DEBUG sqlite files"
-        sudo find /var/lib/dbconfig-common -type f
+        sudo find /var/lib/dbconfig-common -ls
+        echo "whoami: $(whoami), id: $(id)"
+        sudo -u "$(whoami)" test -r /var/lib/dbconfig-common/sqlite3/multiflexi/multiflexi && echo "readable by current user" || echo "NOT readable by current user"
+        sudo -u "$(whoami)" test -w /var/lib/dbconfig-common/sqlite3/multiflexi/multiflexi && echo "writable by current user" || echo "NOT writable by current user"
         echo "::endgroup::"
 
     - name: Validate against MultiFlexi schema
