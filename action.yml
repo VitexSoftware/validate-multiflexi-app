@@ -1,0 +1,68 @@
+name: 'Validate MultiFlexi App Definitions'
+description: >-
+  Validates *.multiflexi.app.json files against the MultiFlexi application
+  schema using multiflexi-cli (installed from repo.multiflexi.eu).
+author: 'VitexSoftware'
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  path-glob:
+    description: 'Glob (relative to repo root) matching app definition files to validate'
+    required: false
+    default: 'multiflexi/*.json'
+  apt-repo-suite:
+    description: >-
+      Debian/Ubuntu suite name for the repo.multiflexi.eu apt line. Defaults
+      to autodetecting the runner's codename via lsb_release.
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate JSON syntax
+      shell: bash
+      env:
+        PATH_GLOB: ${{ inputs.path-glob }}
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        for file in $PATH_GLOB; do
+          echo "Validating syntax: $file"
+          python3 -m json.tool "$file" > /dev/null
+        done
+
+    - name: Install multiflexi-cli
+      shell: bash
+      env:
+        APT_REPO_SUITE: ${{ inputs.apt-repo-suite }}
+      run: |
+        set -euo pipefail
+        suite="$APT_REPO_SUITE"
+        if [ -z "$suite" ]; then
+          suite="$(lsb_release -sc)"
+        fi
+        curl -sSLo /tmp/multiflexi-archive-keyring.deb https://repo.multiflexi.eu/multiflexi-archive-keyring.deb
+        sudo dpkg -i /tmp/multiflexi-archive-keyring.deb
+        echo "deb [signed-by=/usr/share/keyrings/repo.multiflexi.eu.gpg] https://repo.multiflexi.eu/ ${suite} main" | sudo tee /etc/apt/sources.list.d/multiflexi.list
+        sudo apt-get update
+        sudo apt-get install -y multiflexi-cli
+
+    - name: Validate against MultiFlexi schema
+      shell: bash
+      env:
+        PATH_GLOB: ${{ inputs.path-glob }}
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        status=0
+        for file in $PATH_GLOB; do
+          echo "Validating schema: $file"
+          if ! multiflexi-cli application:validate-json --file "$file"; then
+            status=1
+          fi
+        done
+        exit "$status"
